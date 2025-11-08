@@ -141,30 +141,15 @@
 		status = "okay";
 	};
 
-	vcc5v0_otg: vcc5v0-otg-regulator {
+	vcc5v0_usb: vcc5v0-usb-regulator {
 		compatible = "regulator-fixed";
 		enable-active-high;
-		pinctrl-names = "default";
-		pinctrl-0 = <&vcc5v0_otg_en>;
 		gpio = <&gpio4 RK_PC1 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&vcc5v0_usb_en>;
 		regulator-always-on;
 		regulator-boot-on;
-		regulator-settling-time-up-us = <250>;
-		regulator-enable-ramp-delay = <400>;
-		regulator-ramp-delay = <12500>;
-		pwm-supply = <&vcc5v0_sys>;
-		status = "okay";
-	};
-
-	vcc5v0_otg: vcc5v0-otg-regulator {
-		compatible = "regulator-fixed";
-		enable-active-high;
-		pinctrl-names = "default";
-		pinctrl-0 = <&vcc5v0_otg_en>;
-		gpio = <&gpio4 RK_PC1 GPIO_ACTIVE_HIGH>;
-		regulator-always-on;
-		regulator-boot-on;
-		regulator-name = "vcc5v0_otg";
+		regulator-name = "vcc5v0_usb";
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
 		vin-supply = <&vcc5v0_sys>;
@@ -278,7 +263,7 @@
 	};
 	
 	usb {
-		vcc5v0_otg_en: vcc5v0-otg-en {
+		vcc5v0_usb_en: vcc5v0-usb-en {
 			rockchip,pins = <4 RK_PC1 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
@@ -303,11 +288,11 @@
 
 &sdhci {
 	bus-width = <8>;
-        cap-mmc-highspeed;
-        mmc-hs200-1_8v;
-        no-sd;  
-        no-sdio;
-        non-removable;
+	cap-mmc-highspeed;
+	mmc-hs200-1_8v;
+	no-sd;
+	no-sdio;
+	non-removable;
 	pinctrl-names = "default";
 	pinctrl-0 = <&emmc_clk>, <&emmc_cmd>,  <&emmc_strb>, <&emmc_bus8>;
 	status = "okay";
