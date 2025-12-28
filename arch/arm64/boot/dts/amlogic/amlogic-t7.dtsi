@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 #include <dt-bindings/interrupt-controller/arm-gic.h>
-#include <dt-bindings/power/amlogic,t7-pwrc.h>
 #include <dt-bindings/gpio/gpio.h>
 
 / {
@@ -9,11 +8,11 @@
 	#size-cells = <2>;
 
 	cpus {
-		#address-cells = <0x2>;
-		#size-cells = <0x0>;
+		#address-cells = <2>;
+		#size-cells = <0>;
 		cpu-map {
 			cluster0 { core0 { cpu = <&cpu100>; }; core1 { cpu = <&cpu101>; }; core2 { cpu = <&cpu102>; }; core3 { cpu = <&cpu103>; }; };
-			cluster1 { core0 { cpu = <&cpu0>; }; core1 { cpu = <&cpu1>; }; core2 { cpu = <&cpu2>; }; core3 { cpu = <&cpu3>; }; };
+			cluster1 { core0 { cpu = <&cpu0>; }; core1 { cpu = <&cpu101>; }; core2 { cpu = <&cpu102>; }; core3 { cpu = <&cpu103>; }; };
 		};
 		cpu100: cpu@100 { device_type = "cpu"; compatible = "arm,cortex-a53"; reg = <0x0 0x100>; enable-method = "psci"; };
 		cpu101: cpu@101 { device_type = "cpu"; compatible = "arm,cortex-a53"; reg = <0x0 0x101>; enable-method = "psci"; };
@@ -62,14 +61,12 @@
 			reg = <0x0 0xfff01000 0 0x1000>, <0x0 0xfff02000 0 0x0100>;
 		};
 
-		/* 复位控制器兼容性修改 */
 		reset_periphs: reset-controller@fe002000 {
 			compatible = "amlogic,meson-g12a-reset";
 			reg = <0x0 0xfe002000 0x0 0x20>;
 			#reset-cells = <1>;
 		};
 
-		/* USB 2.0 PHY：增加了电源域绑定 */
 		usb2_phy0: phy@fe03a000 {
 			compatible = "amlogic,g12a-usb2-phy";
 			reg = <0x0 0xfe03a000 0x0 0x2000>;
@@ -77,7 +74,7 @@
 			clocks = <&xtal>;
 			clock-names = "xtal";
 			resets = <&reset_periphs 0>;
-			power-domains = <&pwrc PWRC_T7_USB_ID>;
+			power-domains = <&pwrc 11>;
 			status = "disabled";
 		};
 
