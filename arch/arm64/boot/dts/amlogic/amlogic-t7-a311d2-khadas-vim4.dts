@@ -1,8 +1,4 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
-/*
- * Copyright (c) 2022 Wesion, Inc. All rights reserved.
- */
-
 /dts-v1/;
 
 #include "amlogic-t7.dtsi"
@@ -17,7 +13,7 @@
 
 	memory@0 {
 		device_type = "memory";
-		reg = <0x0 0x0 0x0 0x80000000>; /* 定义 2GB 内存，确保启动稳定 */
+		reg = <0x0 0x0 0x0 0x80000000>;
 	};
 
 	reserved-memory {
@@ -37,17 +33,14 @@
 	};
 };
 
-/* 开启串口 */
 &uart_a {
 	status = "okay";
 };
 
-/* 开启 USB 控制器 */
 &usb {
 	status = "okay";
 };
 
-/* 开启 USB 物理层驱动 */
 &usb2_phy0 {
 	status = "okay";
 };
