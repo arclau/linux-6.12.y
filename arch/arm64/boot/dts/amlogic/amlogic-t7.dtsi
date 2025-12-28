@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
  * Copyright (c) 2019 Amlogic, Inc. All rights reserved.
+ * Adapted for Linux 6.12 Mainline
  */
 
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/power/amlogic,t7-pwrc.h>
-#include "amlogic-t7-reset.h"
+#include <dt-bindings/reset/amlogic,meson-t7-reset.h>
+#include <dt-bindings/clock/amlogic,t7-clkc.h>
+#include <dt-bindings/gpio/gpio.h>
 
 / {
 	interrupt-parent = <&gic>;
@@ -18,33 +21,16 @@
 
 		cpu-map {
 			cluster0 {
-				core0 {
-					cpu = <&cpu100>;
-				};
-				core1 {
-					cpu = <&cpu101>;
-				};
-				core2 {
-					cpu = <&cpu102>;
-				};
-				core3 {
-					cpu = <&cpu103>;
-				};
+				core0 { cpu = <&cpu100>; };
+				core1 { cpu = <&cpu101>; };
+				core2 { cpu = <&cpu102>; };
+				core3 { cpu = <&cpu103>; };
 			};
-
 			cluster1 {
-				core0 {
-					cpu = <&cpu0>;
-				};
-				core1 {
-					cpu = <&cpu1>;
-				};
-				core2 {
-					cpu = <&cpu2>;
-				};
-				core3 {
-					cpu = <&cpu3>;
-				};
+				core0 { cpu = <&cpu0>; };
+				core1 { cpu = <&cpu1>; };
+				core2 { cpu = <&cpu2>; };
+				core3 { cpu = <&cpu3>; };
 			};
 		};
 
@@ -118,9 +104,15 @@
 		method = "smc";
 	};
 
+	xtal: xtal-clk {
+		compatible = "fixed-clock";
+		clock-frequency = <24000000>;
+		clock-output-names = "xtal";
+		#clock-cells = <0>;
+	};
+
 	sm: secure-monitor {
 		compatible = "amlogic,meson-gxbb-sm";
-
 		pwrc: power-controller {
 			compatible = "amlogic,t7-pwrc";
 			#power-domain-cells = <1>;
@@ -143,6 +135,74 @@
 			interrupts = <GIC_PPI 9 (GIC_CPU_MASK_SIMPLE(8) | IRQ_TYPE_LEVEL_HIGH)>;
 		};
 
+		/* Clock Controller - 核心时钟，所有外设依赖 */
+		clkc_periphs: clock-controller@fe000000 {
+			compatible = "amlogic,t7-clkc-periphs";
+			reg = <0x0 0xfe000000 0x0 0x1000>;
+			#clock-cells = <1>;
+			clocks = <&xtal>;
+			clock-names = "xtal";
+		};
+
+		/* USB 2.0 PHY */
+		usb2_phy0: phy@fe03a000 {
+			compatible = "amlogic,g12a-usb2-phy";
+			reg = <0x0 0xfe03a000 0x0 0x2000>;
+			#phy-cells = <0>;
+			clocks = <&xtal>;
+			clock-names = "xtal";
+			resets = <&reset_periphs 0x40>;
+			status = "disabled";
+		};
+
+		/* USB Controller */
+		usb: usb@fde00000 {
+			compatible = "amlogic,meson-g12a-usb";
+			reg = <0x0 0xfde00000 0x0 0x400>;
+			interrupts = <GIC_SPI 130 IRQ_TYPE_EDGE_RISING>;
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			phys = <&usb2_phy0>;
+			phy-names = "usb2-phy";
+			dr_mode = "host";
+
+			dwc3: usb@ff500000 {
+				compatible = "snps,dwc3";
+				reg = <0x0 0xff500000 0x0 0x100000>;
+				interrupts = <GIC_SPI 130 IRQ_TYPE_EDGE_RISING>;
+				dr_mode = "host";
+				snps,dis_u2_susphy_quirk;
+				status = "disabled";
+			};
+		};
+
+		/* SD/eMMC Storage - 启动读取系统分区必要 */
+		mmc_ef: mmc@fe074000 {
+			compatible = "amlogic,meson-axg-mmc";
+			reg = <0x0 0xfe074000 0x0 0x800>;
+			interrupts = <GIC_SPI 145 IRQ_TYPE_EDGE_RISING>;
+			clocks = <&clkc_periphs CLKID_T7_SD_EMMC_C>,
+				 <&clkc_periphs CLKID_T7_SD_EMMC_C_CLK0>,
+				 <&clkc_periphs CLKID_T7_FCLK_DIV2>;
+			clock-names = "core", "clkin0", "clkin1";
+			resets = <&reset_periphs 0x24>;
+			status = "disabled";
+		};
+
+		/* Ethernet - 网络调试必要 */
+		ethmac: ethernet@fe03c000 {
+			compatible = "amlogic,meson-axg-dwmac", "snps,dwmac-3.70a";
+			reg = <0x0 0xfe03c000 0x0 0x10000>;
+			interrupts = <GIC_SPI 140 IRQ_TYPE_EDGE_RISING>;
+			interrupt-names = "macirq";
+			clocks = <&clkc_periphs CLKID_T7_ETH_MAC>,
+				 <&clkc_periphs CLKID_T7_FCLK_DIV2>;
+			clock-names = "stmmaceth", "ptp_ref";
+			status = "disabled";
+		};
+
 		apb4: bus@fe000000 {
 			compatible = "simple-bus";
 			reg = <0x0 0xfe000000 0x0 0x480000>;
@@ -150,7 +210,7 @@
 			#size-cells = <2>;
 			ranges = <0x0 0x0 0x0 0xfe000000 0x0 0x480000>;
 
-			reset: reset-controller@2000 {
+			reset_periphs: reset-controller@2000 {
 				compatible = "amlogic,t7-reset";
 				reg = <0x0 0x2000 0x0 0x98>;
 				#reset-cells = <1>;
@@ -194,15 +254,6 @@
 				interrupts = <GIC_SPI 168 IRQ_TYPE_EDGE_RISING>;
 				status = "disabled";
 			};
-
-			sec_ao: ao-secure@10220 {
-				compatible = "amlogic,t7-ao-secure",
-					     "amlogic,meson-gx-ao-secure",
-					     "syscon";
-				reg = <0x0 0x10220 0x0 0x140>;
-				amlogic,has-chip-id;
-			};
 		};
-
 	};
 };
